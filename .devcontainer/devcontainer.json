@@ -1,0 +1,31 @@
+{
+	"name": "Magento Dev Container",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:1": {}
+    },
+    "containerEnv": {
+      "GITHUB_TOKEN": "${{ secrets.GH_TOKEN }}",
+      "MAGENTO_COMPOSER_AUTH_USER": "${{ secrets.MAGENTO_COMPOSER_AUTH_USER }}",
+      "MAGENTO_COMPOSER_AUTH_PASS": "${{ secrets.MAGENTO_COMPOSER_AUTH_PASS }}",
+      "MAGENTO_VERSION": "2.4.7-p5",
+      "MAGENTO_ADMIN_USERNAME": "admin",
+      "MAGENTO_ADMIN_PASSWORD": "password1",
+      "MAGENTO_ADMIN_EMAIL": "admin@example.com",
+      "MYSQL_ROOT_PASSWORD": "password",
+      "INSTALL_MAGENTO": "NO"
+    },
+	"forwardPorts": [8080, 3306, 6379, 1025, 8025, 9200],
+	"portsAttributes": {
+	  "3306": { "label": "MySQL Database" },
+	  "8080": { "label": "Magento Web" },
+	  "6379": { "label": "Redis" },
+	  "1025": { "label": "Mailpit SMTP" },
+	  "8025": { "label": "Mailpit Web" },
+	  "9200": { "label": "OpenSearch" }
+	},
+	"onCreateCommand": "bash -c 'chmod +x .devcontainer/setup_magento.sh && .devcontainer/setup_magento.sh'",
+    "postAttachCommand": "bash -c 'chmod +x .devcontainer/start_services.sh && .devcontainer/start_services.sh'"
+}
