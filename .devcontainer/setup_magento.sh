@@ -28,6 +28,7 @@ if [ ! -f composer.json ]; then
   
   # Create Magento project in a temporary directory
   # The --no-install flag prevents composer from installing dependencies immediately
+  echo '{ "http-basic": { "repo.magento.com": { "username": "'"${MAGENTO_COMPOSER_AUTH_USER}"'", "password": "'"${MAGENTO_COMPOSER_AUTH_PASS}"'" } } }' > auth.json
   ${COMPOSER_COMMAND} create-project --no-install --repository-url=https://repo.magento.com/ magento/project-${MAGENTO_EDITION}-edition=${MAGENTO_VERSION} magento2
   mv magento2/* .
   rm -rf magento2
@@ -35,6 +36,8 @@ fi
 
 echo "**** Running composer install ****"
 ${COMPOSER_COMMAND} install --no-dev --optimize-autoloader --ignore-platform-reqs
+
+bin/magento sampledata:deploy
 
 echo "**** Installing n98-magerun2 ****"
 curl -L https://files.magerun.net/n98-magerun2.phar --output bin/magerun2
