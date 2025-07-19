@@ -144,6 +144,7 @@ else
     php -d memory_limit=-1 bin/magento setup:install \
       --db-name='magento2' \
       --db-user='root' \
+      --db-host='127.0.0.1' \
       --db-password="${MYSQL_ROOT_PASSWORD}" \
       --base-url="$url" \
       --backend-frontname='admin' \
@@ -223,9 +224,6 @@ url="https://${CODESPACE_NAME}-8080.app.github.dev/"
 target="${CODESPACES_REPO_ROOT}/vendor/magento/framework/App/Response/HeaderProvider/XFrameOptions.php"
 sed -i "s|\$this->headerValue = \$xFrameOpt;|\$this->headerValue = '${url}';|" "$target"
 
-echo "Running Hyvä Build"
-n98-magerun2 dev:theme:build-hyva frontend/Develo/Bamford &
-echo ""
 echo "============ Environment Ready =========="
 echo "All services started successfully!"
 echo "You can check service status with: sudo supervisorctl status"
@@ -238,5 +236,3 @@ if [ ! -f ".devcontainer/db-installed.flag" ]; then
 fi
 
 touch "${CODESPACES_REPO_ROOT}/.devcontainer/db-installed.flag"
-
-

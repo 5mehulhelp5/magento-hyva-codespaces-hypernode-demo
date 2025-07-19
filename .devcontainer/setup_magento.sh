@@ -14,7 +14,7 @@ cd "${CODESPACES_REPO_ROOT}"
 
 echo "============ 1. Setup Magento Environment =========="
 # Check for Magento credentials before attempting to use them
-if [ INSTALL_MAGENTO == "YES" && -z "${MAGENTO_COMPOSER_AUTH_USER:-}" ] || [ -z "${MAGENTO_COMPOSER_AUTH_PASS:-}" ]; then
+if [ "$INSTALL_MAGENTO" == "YES" ] && ([ -z "${MAGENTO_COMPOSER_AUTH_USER:-}" ] || [ -z "${MAGENTO_COMPOSER_AUTH_PASS:-}" ]); then
   echo "ERROR: Please set the MAGENTO_COMPOSER_AUTH_USER and MAGENTO_COMPOSER_AUTH_PASS"
   echo "secrets in your Codespace or repository settings."
   exit 1
@@ -28,14 +28,13 @@ if [ ! -f composer.json ]; then
   
   # Create Magento project in a temporary directory
   # The --no-install flag prevents composer from installing dependencies immediately
-  ${COMPOSER_COMMAND} create-project --no-install --repository-url=https://repo.magento.com/ magento/project-${MAGENTO_EDITION}-edition=${MAGENTO_VERSION} .
-  
-  # Create a local auth.json for future composer operations within the project
-  echo '{ "http-basic": { "repo.magento.com": { "username": "'"${MAGENTO_COMPOSER_AUTH_USER}"'", "password": "'"${MAGENTO_COMPOSER_AUTH_PASS}"'" } } }' > auth.json
+  ${COMPOSER_COMMAND} create-project --no-install --repository-url=https://repo.magento.com/ magento/project-${MAGENTO_EDITION}-edition=${MAGENTO_VERSION} magento2
+  mv magento2/* .
+  rm -rf magento2
 fi
 
 echo "**** Running composer install ****"
-${COMPOSER_COMMAND} install --no-dev --optimize-autoloader
+${COMPOSER_COMMAND} install --no-dev --optimize-autoloader --ignore-platform-reqs
 
 echo "**** Installing n98-magerun2 ****"
 curl -L https://files.magerun.net/n98-magerun2.phar --output bin/magerun2
