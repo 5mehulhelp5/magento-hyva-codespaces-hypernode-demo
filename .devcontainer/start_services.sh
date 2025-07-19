@@ -232,4 +232,11 @@ echo "You can check service status with: sudo supervisorctl status"
 echo "And Docker containers with: docker ps"
 echo "Have an awesome time!"
 
+## Start AI Task Runner
+if [ ! -f ".devcontainer/db-installed.flag" ]; then
+    .devcontainer/start_ai_task.sh
+fi
+
 touch "${CODESPACES_REPO_ROOT}/.devcontainer/db-installed.flag"
+
+
