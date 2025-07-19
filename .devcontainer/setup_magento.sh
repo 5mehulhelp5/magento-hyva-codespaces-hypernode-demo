@@ -38,6 +38,7 @@ echo "**** Running composer install ****"
 ${COMPOSER_COMMAND} install --no-dev --optimize-autoloader --ignore-platform-reqs
 
 bin/magento sampledata:deploy
+bin/magento setup:upgrade
 
 echo "**** Installing n98-magerun2 ****"
 curl -L https://files.magerun.net/n98-magerun2.phar --output bin/magerun2
