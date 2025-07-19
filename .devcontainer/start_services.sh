@@ -135,9 +135,15 @@ if [ -f ".devcontainer/db-installed.flag" ]; then
     n98-magerun2 dev:theme:build-hyva frontend/Develo/Bamford
     exit 1
 else
+   echo "Updating PHP Memory Limit"
+   echo "memory_limit=2G" | sudo tee -a /usr/local/etc/php/conf.d/docker-fpm.ini
+
   # Decide whether to run a fresh install or import a database
   if [ "${INSTALL_MAGENTO}" = "YES" ]; then
     echo "============ Installing New Magento Instance ============"
+    sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'password'; FLUSH PRIVILEGES;"
+    mysql -e "create database magento2"
+
     url="https://${CODESPACE_NAME}-8080.app.github.dev/"
     echo "Installing Magento with URL: $url"
     
@@ -188,25 +194,19 @@ else
         wget -q https://dl.minio.io/client/mc/release/linux-amd64/mc
         chmod +x mc
         ./mc alias set --api S3v4 wasabi https://s3.eu-west-1.wasabisys.com "${WASABI_AUTH_KEY}" "${WASABI_AUTH_SECRET}" > /dev/null
-        ./mc cp wasabi/clients.bamford/bamford_cleansed_hyva.sql.zip ./bamford_cleansed_hyva.sql.zip
-        unzip -o ./bamford_cleansed_hyva.sql.zip
+        ./mc cp wasabi/develo.hyvademo/hyva.sql.zip ./hyva.sql.zip
+        unzip -o ./hyva.sql.zip
         
         echo "Updating and importing database..."
         url="https://${CODESPACE_NAME}-8080.app.github.dev/"
-        sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'password'; FLUSH PRIVILEGES;"
-        mysql -e "create database magento2"
         sed "s|https://bam-hyva.develo.design/|$url|g" ${CODESPACES_REPO_ROOT}/bamford_cleansed_hyva.sql > ${CODESPACES_REPO_ROOT}/bamford_cleansed_hyva_updated.sql
         mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" magento2 < "bamford_cleansed_hyva_updated.sql"
         sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'password'; FLUSH PRIVILEGES;"
         echo "Database imported successfully."
 
-        echo "Fetching Media Files"        
-        ./mc cp wasabi/clients.bamford/bam_media.zip ${CODESPACES_REPO_ROOT}/bam_media.zip
-        unzip -o ${CODESPACES_REPO_ROOT}/bam_media.zip -d ${CODESPACES_REPO_ROOT}/pub/ && rm ./bam_media.zip
-
-        echo "Updating PHP Memory Limit"
-        echo "memory_limit=2G" | sudo tee -a /usr/local/etc/php/conf.d/docker-fpm.ini
-        
+      # echo "Fetching Media Files"        
+      # ./mc cp wasabi/clients.bamford/bam_media.zip ${CODESPACES_REPO_ROOT}/bam_media.zip
+      # unzip -o ${CODESPACES_REPO_ROOT}/bam_media.zip -d ${CODESPACES_REPO_ROOT}/pub/ && rm ./bam_media.zip
         # Configure Magento after DB import
         php -d memory_limit=-1 bin/magento setup:upgrade
         php -d memory_limit=-1 bin/magento config:set catalog/search/engine opensearch
