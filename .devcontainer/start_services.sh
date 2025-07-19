@@ -132,7 +132,7 @@ cd "${CODESPACES_REPO_ROOT}"
 if [ -f ".devcontainer/db-installed.flag" ]; then 
   echo "Magento already installed, skipping installation/import."
     echo "Running Hyvä Build"
-    n98-magerun2 dev:theme:build-hyva frontend/Develo/Bamford
+    n98-magerun2 dev:theme:build-hyva
     exit 1
 else
    echo "Updating PHP Memory Limit"
@@ -190,30 +190,36 @@ else
     if [ -z "${WASABI_AUTH_KEY:-}" ] || [ -z "${WASABI_AUTH_SECRET:-}" ]; then
         echo "WARNING: Wasabi credentials not set. Cannot import database."
     else
-        echo "Downloading database from Wasabi..."
-        wget -q https://dl.minio.io/client/mc/release/linux-amd64/mc
-        chmod +x mc
-        ./mc alias set --api S3v4 wasabi https://s3.eu-west-1.wasabisys.com "${WASABI_AUTH_KEY}" "${WASABI_AUTH_SECRET}" > /dev/null
-        ./mc cp wasabi/develo.hyvademo/hyva.sql.zip ./hyva.sql.zip
-        unzip -o ./hyva.sql.zip
+       # echo "Downloading database from Wasabi..."
+       # wget -q https://dl.minio.io/client/mc/release/linux-amd64/mc
+       # chmod +x mc
+       # ./mc alias set --api S3v4 wasabi https://s3.eu-west-1.wasabisys.com "${WASABI_AUTH_KEY}" "${WASABI_AUTH_SECRET}" > /dev/null
+       # ./mc cp wasabi/develo.hyvademo/hyva.sql.zip ./hyva.sql.zip
+       # unzip -o ./hyva.sql.zip
         
-        echo "Updating and importing database..."
-        url="https://${CODESPACE_NAME}-8080.app.github.dev/"
-        sed "s|https://bam-hyva.develo.design/|$url|g" ${CODESPACES_REPO_ROOT}/bamford_cleansed_hyva.sql > ${CODESPACES_REPO_ROOT}/bamford_cleansed_hyva_updated.sql
-        mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" magento2 < "bamford_cleansed_hyva_updated.sql"
-        sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'password'; FLUSH PRIVILEGES;"
-        echo "Database imported successfully."
+        #echo "Updating and importing database..."
+       # url="https://${CODESPACE_NAME}-8080.app.github.dev/"
+       # sed "s|https://bam-hyva.develo.design/|$url|g" ${CODESPACES_REPO_ROOT}/bamford_cleansed_hyva.sql > ${CODESPACES_REPO_ROOT}/bamford_cleansed_hyva_updated.sql
+       # mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" magento2 < "bamford_cleansed_hyva_updated.sql"
+       # sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'password'; FLUSH PRIVILEGES;"
+       # echo "Database imported successfully."
 
       # echo "Fetching Media Files"        
       # ./mc cp wasabi/clients.bamford/bam_media.zip ${CODESPACES_REPO_ROOT}/bam_media.zip
       # unzip -o ${CODESPACES_REPO_ROOT}/bam_media.zip -d ${CODESPACES_REPO_ROOT}/pub/ && rm ./bam_media.zip
         # Configure Magento after DB import
-        php -d memory_limit=-1 bin/magento setup:upgrade
-        php -d memory_limit=-1 bin/magento config:set catalog/search/engine opensearch
-        php -d memory_limit=-1 bin/magento config:set catalog/search/opensearch_server_hostname localhost
-        php -d memory_limit=-1 bin/magento config:set catalog/search/opensearch_server_port 9200
-        php -d memory_limit=-1 bin/magento cache:flush
-        rm -rf ${CODESPACES_REPO_ROOT}/pub/static/frontend
+     #   php -d memory_limit=-1 bin/magento setup:upgrade
+     #   php -d memory_limit=-1 bin/magento config:set catalog/search/engine opensearch
+     #   php -d memory_limit=-1 bin/magento config:set catalog/search/opensearch_server_hostname localhost
+     #   php -d memory_limit=-1 bin/magento config:set catalog/search/opensearch_server_port 9200
+     #   php -d memory_limit=-1 bin/magento cache:flush
+     #   rm -rf ${CODESPACES_REPO_ROOT}/pub/static/frontend
+
+      if [ ! -z "${HYVA_COMPOSER_TOKEN}" ] && [ ! -z "${HYVA_COMPOSER_PROJECT}" ]; then
+        composer config --auth http-basic.hyva-themes.repo.packagist.com token ${HYVA_COMPOSER_TOKEN}
+        composer config repositories.private-packagist composer https://hyva-themes.repo.packagist.com/${HYVA_COMPOSER_PROJECT}/
+        composer require hyva-themes/magento2-default-theme
+      fi
     fi
   fi
 fi
