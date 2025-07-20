@@ -38,7 +38,6 @@ echo "**** Running composer install ****"
 ${COMPOSER_COMMAND} install --no-dev --optimize-autoloader --ignore-platform-reqs
 
 bin/magento sampledata:deploy
-bin/magento setup:upgrade
 
 echo "**** Installing n98-magerun2 ****"
 curl -L https://files.magerun.net/n98-magerun2.phar --output bin/magerun2
@@ -46,7 +45,5 @@ chmod +x bin/magerun2
 
 sudo npm install -g @google/gemini-cli
 sudo npm install -g @anthropic-ai/claude-code
-
-
 
 echo "============ 2. Setup Complete =========="
