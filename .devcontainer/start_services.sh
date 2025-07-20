@@ -183,8 +183,8 @@ else
     php -d memory_limit=-1 bin/magento deploy:mode:set developer
     php -d memory_limit=-1 bin/magento module:disable Magento_AdminAdobeImsTwoFactorAuth Magento_TwoFactorAuth
 
-    sudo mysql -e "UPDATE `design_config_grid_flat` SET `theme_theme_id` = '5' WHERE `theme_theme_id` = '3';";
-    sudo mysql -e "UPDATE `core_config_data` SET `value` = '5' WHERE `path` = 'design/theme/theme_id' AND `scope_id` = 0 AND `scope` = 'default';";
+sudo mysql -e 'use magento2; UPDATE `design_config_grid_flat` SET `theme_theme_id` = "5" WHERE `theme_theme_id` = "3"';
+sudo mysql -e 'use magento2; UPDATE `core_config_data` SET `value` = "5" WHERE `path` = "design/theme/theme_id" AND `scope_id` = 0 AND `scope` = "default";'
 
         echo "============ Magento Installation Complete ============"
   else
@@ -203,9 +203,9 @@ else
         
         #echo "Updating and importing database..."
        # url="https://${CODESPACE_NAME}-8080.app.github.dev/"
-       # sed "s|https://bam-hyva.develo.design/|$url|g" ${CODESPACES_REPO_ROOT}/bamford_cleansed_hyva.sql > ${CODESPACES_REPO_ROOT}/bamford_cleansed_hyva_updated.sql
-       # mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" magento2 < "bamford_cleansed_hyva_updated.sql"
-       # sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'password'; FLUSH PRIVILEGES;"
+       #sed "s|https://bam-hyva.develo.design/|$url|g" ${CODESPACES_REPO_ROOT}/bamford_cleansed_hyva.sql > ${CODESPACES_REPO_ROOT}/bamford_cleansed_hyva_updated.sql
+      # mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" magento2 < "bamford_cleansed_hyva_updated.sql"
+       sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'password'; FLUSH PRIVILEGES;"
        # echo "Database imported successfully."
 
       # echo "Fetching Media Files"        
