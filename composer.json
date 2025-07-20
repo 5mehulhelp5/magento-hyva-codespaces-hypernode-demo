@@ -106,5 +106,8 @@
     },
     "extra": {
         "magento-force": "override"
+    },
+    "replace": {
+        "hyva-themes/magento2-mollie-theme-bundle": "*"
     }
 }

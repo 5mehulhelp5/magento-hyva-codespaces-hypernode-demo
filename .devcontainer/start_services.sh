@@ -182,6 +182,10 @@ else
     echo "============ Configuring Magento =========="
     php -d memory_limit=-1 bin/magento deploy:mode:set developer
     php -d memory_limit=-1 bin/magento module:disable Magento_AdminAdobeImsTwoFactorAuth Magento_TwoFactorAuth
+
+    sudo mysql -e "UPDATE `design_config_grid_flat` SET `theme_theme_id` = '5' WHERE `theme_theme_id` = '3';";
+    sudo mysql -e "UPDATE `core_config_data` SET `value` = '5' WHERE `path` = 'design/theme/theme_id' AND `scope_id` = 0 AND `scope` = 'default';";
+
         echo "============ Magento Installation Complete ============"
   else
     echo "============ Copying env.php to Magento ============"
@@ -219,6 +223,7 @@ else
         composer config --auth http-basic.hyva-themes.repo.packagist.com token ${HYVA_COMPOSER_TOKEN}
         composer config repositories.private-packagist composer https://hyva-themes.repo.packagist.com/${HYVA_COMPOSER_PROJECT}/
         composer require hyva-themes/magento2-default-theme
+        bin/magento config:set design/theme/theme_id 5
       fi
     fi
   fi
