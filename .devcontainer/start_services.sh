@@ -142,7 +142,7 @@ else
   if [ "${INSTALL_MAGENTO}" = "YES" ]; then
     echo "============ Installing New Magento Instance ============"
     sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'password'; FLUSH PRIVILEGES;"
-    mysql -e "create database magento2"
+    mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS magento2;"
 
     url="https://${CODESPACE_NAME}-8080.app.github.dev/"
     echo "Installing Magento with URL: $url"
