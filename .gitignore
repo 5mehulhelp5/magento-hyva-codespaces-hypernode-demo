@@ -26,4 +26,3 @@
 !/.devcontainer/*
 /.devcontainer/db-installed.flag
 /app/etc/config.php
-auth.json
