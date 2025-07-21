@@ -1,4 +1,4 @@
-Would it be able to run directly in the codespaces instance?#!/bin/bash
+#!/bin/bash
 set -e
 
 TASK_FILE=$1
@@ -8,12 +8,12 @@ ATTEMPT=1
 echo "--- Agent Loop Started ---"
 echo "Task File: $TASK_FILE"
 
-# --- 1. Initialization ---
-JOB_ID=$(grep 'jobId:' "$TASK_FILE" | cut -d ' ' -f 2)
-PARENT_BRANCH=$(grep 'parentBranch:' "$TASK_FILE" | cut -d ' ' -f 2)
-ISSUE_KEY=$(grep 'issueKey:' "$TASK_FILE" | cut -d ' ' -f 2)
-SUMMARY=$(grep 'summary:' "$TASK_FILE" | cut -d ' ' -f 2-)
-TASK_DESCRIPTION=$(sed '1,/---/d' "$TASK_FILE")
+# --- 1. Initialization from JSON file ---
+JOB_ID=$(jq -r '.jobId' "$TASK_FILE")
+PARENT_BRANCH=$(jq -r '.parentBranch' "$TASK_FILE")
+ISSUE_KEY=$(jq -r '.issueKey' "$TASK_FILE")
+SUMMARY=$(jq -r '.summary' "$TASK_FILE")
+TASK_DESCRIPTION=$(jq -r '.description' "$TASK_FILE")
 
 # Signal that development is starting
 if [ -n "$JOB_ID" ] && [ -n "$CALLBACK_URL" ]; then
@@ -23,10 +23,15 @@ if [ -n "$JOB_ID" ] && [ -n "$CALLBACK_URL" ]; then
          "$CALLBACK_URL/update-status"
 fi
 
-# Create the feature branch
+# Create the feature branch idempotently
 NEW_BRANCH_NAME="feature/${ISSUE_KEY}-$(echo "$SUMMARY" | tr '[:upper:]' '[:lower:]' | tr -s ' ' '-' | cut -c 1-40)"
-git checkout -b "$NEW_BRANCH_NAME"
-echo "Created and checked out new branch: $NEW_BRANCH_NAME"
+if git show-ref --verify --quiet "refs/heads/$NEW_BRANCH_NAME"; then
+    echo "Branch '$NEW_BRANCH_NAME' already exists. Checking it out."
+    git checkout "$NEW_BRANCH_NAME"
+else
+    echo "Branch '$NEW_BRANCH_NAME' does not exist. Creating and checking it out."
+    git checkout -b "$NEW_BRANCH_NAME"
+fi
 
 LAST_ERROR="No errors yet."
 
@@ -36,7 +41,7 @@ while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
 
     # --- 3. Planning Step ---
     echo "Planning step: Asking Gemini for a plan..."
-    PLAN_PROMPT="Based on this task: '${TASK_DESCRIPTION}'. The last attempt failed with this error: '${LAST_ERROR}'. Create a step-by-step plan to complete the task. The plan must include writing code, writing Playwright or unit tests to validate the code, and running those tests. Output ONLY the plan as a numbered list."
+    PLAN_PROMPT="You are an expert developer agent. Based on this task: '${TASK_DESCRIPTION}'. The last attempt failed with this error: '${LAST_ERROR}'. Create a step-by-step plan. The plan must include writing code, writing Playwright or unit tests to validate the code, and running those tests. Your output must ONLY be the plan as a numbered list. Do not use any tool calls."
 
     PLAN=$(gemini -k "$GEMINI_API_KEY" "gemini-1.5-flash-latest" "$PLAN_PROMPT")
     echo "Received Plan:"
@@ -49,7 +54,7 @@ while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
     OLD_IFS=$IFS
     IFS=$'\n'
     for STEP in $PLAN; do
-        ACTION_PROMPT="Turn this step: '${STEP}' into a single, executable bash command or a block of code to be written to a file. For file writing, use the format 'WRITE_FILE /path/to/file.js <<EOF\ncode here\nEOF'. For tests, generate real Playwright or unit tests. Output ONLY the command or code block."
+        ACTION_PROMPT="You are an expert developer agent. Your task is to convert a step from a plan into a single, directly executable bash command. Do not use tool calls. Do not explain the command. Only output the raw command. For file writing, use the format 'cat > /path/to/file.js <<EOF\ncode here\nEOF'. For tests, generate real Playwright or unit tests. The step is: '${STEP}'"
         ACTION=$(gemini -k "$GEMINI_API_KEY" "gemini-1.5-flash-latest" "$ACTION_PROMPT")
 
         echo "Executing Action for step '${STEP}':"
@@ -71,7 +76,7 @@ while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
 
     # --- 5. Validation Step ---
     echo "Validation step: Running all tests..."
-    VALIDATION_PROMPT="Generate the final validation command to run all tests for this project. Output ONLY the command."
+    VALIDATION_PROMPT="You are an expert developer agent. Generate the final validation command to run all tests for this project. Your output must ONLY be the raw, executable bash command. Do not use tool calls."
     VALIDATION_CMD=$(gemini -k "$GEMINI_API_KEY" "gemini-1.5-flash-latest" "$VALIDATION_PROMPT")
 
     echo "Running validation: $VALIDATION_CMD"

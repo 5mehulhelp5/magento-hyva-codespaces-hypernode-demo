@@ -32,12 +32,11 @@ if [ ! -f composer.json ]; then
   ${COMPOSER_COMMAND} create-project --no-install --repository-url=https://repo.magento.com/ magento/project-${MAGENTO_EDITION}-edition=${MAGENTO_VERSION} magento2
   mv magento2/* .
   rm -rf magento2
+
+  echo "**** Running composer install ****"
+  ${COMPOSER_COMMAND} install --no-dev --optimize-autoloader --ignore-platform-reqs
+  bin/magento sampledata:deploy
 fi
-
-echo "**** Running composer install ****"
-${COMPOSER_COMMAND} install --no-dev --optimize-autoloader --ignore-platform-reqs
-
-bin/magento sampledata:deploy
 
 echo "**** Installing n98-magerun2 ****"
 curl -L https://files.magerun.net/n98-magerun2.phar --output bin/magerun2
