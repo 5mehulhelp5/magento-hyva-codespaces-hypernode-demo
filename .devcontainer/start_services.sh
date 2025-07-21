@@ -164,13 +164,6 @@ sudo mysql -e 'use magento2; UPDATE `core_config_data` SET `value` = "5" WHERE `
      #   php -d memory_limit=-1 bin/magento config:set catalog/search/opensearch_server_port 9200
      #   php -d memory_limit=-1 bin/magento cache:flush
      #   rm -rf ${CODESPACES_REPO_ROOT}/pub/static/frontend
-
-      if [ ! -z "${HYVA_COMPOSER_TOKEN}" ] && [ ! -z "${HYVA_COMPOSER_PROJECT}" ]; then
-        composer config --auth http-basic.hyva-themes.repo.packagist.com token ${HYVA_COMPOSER_TOKEN}
-        composer config repositories.private-packagist composer https://hyva-themes.repo.packagist.com/${HYVA_COMPOSER_PROJECT}/
-        composer require hyva-themes/magento2-default-theme
-        bin/magento config:set design/theme/theme_id 5
-      fi
     fi
   fi
 fi
