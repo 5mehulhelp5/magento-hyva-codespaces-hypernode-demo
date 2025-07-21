@@ -15,7 +15,7 @@
       "MAGENTO_ADMIN_PASSWORD": "password1",
       "MAGENTO_ADMIN_EMAIL": "admin@example.com",
       "MYSQL_ROOT_PASSWORD": "password",
-      "INSTALL_MAGENTO": "NO"
+      "INSTALL_MAGENTO": "YES"
     },
 	"forwardPorts": [8080, 3306, 6379, 1025, 8025, 9200],
 	"portsAttributes": {
@@ -27,5 +27,5 @@
 	  "9200": { "label": "OpenSearch" }
 	},
 	"onCreateCommand": "bash -c 'chmod +x .devcontainer/setup_magento.sh && .devcontainer/setup_magento.sh'",
-    "postAttachCommand": "bash -c 'chmod +x .devcontainer/start_services.sh && .devcontainer/start_services.sh'"
+  "postAttachCommand": "bash -c 'chmod +x .devcontainer/start_services.sh && .devcontainer/start_services.sh'"
 }

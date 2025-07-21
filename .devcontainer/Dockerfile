@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
     rsync \
     libnss3-dev \
     openssh-client \
+    jq \
     mc \
     gcc \
     make \
