@@ -31,24 +31,6 @@ if [ "$INSTALL_MAGENTO" == "YES" ] && ([ -z "${MAGENTO_COMPOSER_AUTH_USER:-}" ] 
   exit 1
 fi
 
-# Handle Magento project creation if composer.json doesn't exist
-echo "**** Creating Magento project ${MAGENTO_VERSION} ****"
-# Configure Composer authentication globally for the container
-${COMPOSER_COMMAND} config -g -a http-basic.repo.magento.com "${MAGENTO_COMPOSER_AUTH_USER}" "${MAGENTO_COMPOSER_AUTH_PASS}"
-
-# Create Magento project in a temporary directory
-${COMPOSER_COMMAND} create-project --no-install --repository-url=https://repo.magento.com/ magento/project-${MAGENTO_EDITION}-edition=${MAGENTO_VERSION} magento2
-rm magento2/composer.json
-
-# Move all contents (including hidden files) from the temp directory to the current directory
-# The `shopt -s dotglob` ensures that `*` matches hidden files as well.
-shopt -s dotglob
-mv magento2/* .
-shopt -u dotglob
-
-# Remove the now-empty temp directory
-rm -rf magento2
-
 echo "**** Running composer install ****"
 ${COMPOSER_COMMAND} install --no-dev --optimize-autoloader --ignore-platform-reqs
 bin/magento sampledata:deploy
