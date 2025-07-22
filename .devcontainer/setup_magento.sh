@@ -85,10 +85,9 @@ if [ ! -f ".devcontainer/db-installed.flag" ]; then
   # The --no-install flag prevents composer from installing dependencies immediately
   echo '{ "http-basic": { "repo.magento.com": { "username": "'"${MAGENTO_COMPOSER_AUTH_USER}"'", "password": "'"${MAGENTO_COMPOSER_AUTH_PASS}"'" } } }' > auth.json
   ${COMPOSER_COMMAND} create-project --no-install --repository-url=https://repo.magento.com/ magento/project-${MAGENTO_EDITION}-edition=${MAGENTO_VERSION} magento2
-  rm magento2/composer.json || true
-  rm magento2/composer.lock || true
-  mv magento2/* .
-  rm -rf magento2
+  rm /workspaces/magento-hyva-codespaces-hypernode-demo/magento2/composer.json
+  mv /workspaces/magento-hyva-codespaces-hypernode-demo/magento2/* .
+  rm -rf /workspaces/magento-hyva-codespaces-hypernode-demo/magento2
 
   echo "**** Running composer install ****"
   ${COMPOSER_COMMAND} install --no-dev --optimize-autoloader --ignore-platform-reqs
