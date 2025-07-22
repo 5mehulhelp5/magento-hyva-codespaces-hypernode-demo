@@ -32,18 +32,27 @@ if [ "$INSTALL_MAGENTO" == "YES" ] && ([ -z "${MAGENTO_COMPOSER_AUTH_USER:-}" ] 
 fi
 
 # Handle Magento project creation if composer.json doesn't exist
-if [ ! -f ".devcontainer/db-installed.flag" ]; then
+if [ ! -f "composer.json" ]; then
   echo "**** Creating Magento project ${MAGENTO_VERSION} ****"
   # Configure Composer authentication globally for the container
   ${COMPOSER_COMMAND} config -g -a http-basic.repo.magento.com "${MAGENTO_COMPOSER_AUTH_USER}" "${MAGENTO_COMPOSER_AUTH_PASS}"
   
   # Create Magento project in a temporary directory
-  # The --no-install flag prevents composer from installing dependencies immediately
-  echo '{ "http-basic": { "repo.magento.com": { "username": "'"${MAGENTO_COMPOSER_AUTH_USER}"'", "password": "'"${MAGENTO_COMPOSER_AUTH_PASS}"'" } } }' > auth.json
   ${COMPOSER_COMMAND} create-project --no-install --repository-url=https://repo.magento.com/ magento/project-${MAGENTO_EDITION}-edition=${MAGENTO_VERSION} magento2
-  rm /workspaces/magento-hyva-codespaces-hypernode-demo/magento2/composer.json
-  mv /workspaces/magento-hyva-codespaces-hypernode-demo/magento2/* .
-  rm -rf /workspaces/magento-hyva-codespaces-hypernode-demo/magento2
+  
+# ADD THIS DEBUGGING STEP
+echo "--- Debugging: Listing contents of magento2 directory ---"
+ls -la magento2
+echo "--------------------------------------------------------"
+
+  # Move all contents (including hidden files) from the temp directory to the current directory
+  # The `shopt -s dotglob` ensures that `*` matches hidden files as well.
+  shopt -s dotglob
+  mv magento2/* .
+  shopt -u dotglob
+
+  # Remove the now-empty temp directory
+  rm -rf magento2
 
   echo "**** Running composer install ****"
   ${COMPOSER_COMMAND} install --no-dev --optimize-autoloader --ignore-platform-reqs
