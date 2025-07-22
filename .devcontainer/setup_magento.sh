@@ -38,7 +38,7 @@ ${COMPOSER_COMMAND} config -g -a http-basic.repo.magento.com "${MAGENTO_COMPOSER
 
 # Create Magento project in a temporary directory
 ${COMPOSER_COMMAND} create-project --no-install --repository-url=https://repo.magento.com/ magento/project-${MAGENTO_EDITION}-edition=${MAGENTO_VERSION} magento2
-
+rm magento2/composer.json
 
 # Move all contents (including hidden files) from the temp directory to the current directory
 # The `shopt -s dotglob` ensures that `*` matches hidden files as well.
