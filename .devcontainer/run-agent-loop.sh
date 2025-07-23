@@ -43,7 +43,7 @@ while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
     echo "Planning step: Asking Gemini for a plan..."
     PLAN_PROMPT="You are an expert developer agent. Based on this task: '${TASK_DESCRIPTION}'. The last attempt failed with this error: '${LAST_ERROR}'. Create a step-by-step plan. The plan must include writing code, writing Playwright or unit tests to validate the code, and running those tests. Your output must ONLY be the plan as a numbered list. Do not use any tool calls."
 
-    PLAN=$(gemini -k "$GEMINI_API_KEY" "gemini-1.5-flash-latest" "$PLAN_PROMPT")
+    PLAN=$(gemini -p "$PLAN_PROMPT")
     echo "Received Plan:"
     echo "$PLAN"
 
@@ -55,7 +55,7 @@ while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
     IFS=$'\n'
     for STEP in $PLAN; do
         ACTION_PROMPT="You are an expert developer agent. Your task is to convert a step from a plan into a single, directly executable bash command. Do not use tool calls. Do not explain the command. Only output the raw command. For file writing, use the format 'cat > /path/to/file.js <<EOF\ncode here\nEOF'. For tests, generate real Playwright or unit tests. The step is: '${STEP}'"
-        ACTION=$(gemini -k "$GEMINI_API_KEY" "gemini-1.5-flash-latest" "$ACTION_PROMPT")
+        ACTION=$(gemini -p "$ACTION_PROMPT")
 
         echo "Executing Action for step '${STEP}':"
         echo "$ACTION"
@@ -77,7 +77,7 @@ while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
     # --- 5. Validation Step ---
     echo "Validation step: Running all tests..."
     VALIDATION_PROMPT="You are an expert developer agent. Generate the final validation command to run all tests for this project. Your output must ONLY be the raw, executable bash command. Do not use tool calls."
-    VALIDATION_CMD=$(gemini -k "$GEMINI_API_KEY" "gemini-1.5-flash-latest" "$VALIDATION_PROMPT")
+    VALIDATION_CMD=$(gemini -p "$VALIDATION_PROMPT")
 
     echo "Running validation: $VALIDATION_CMD"
     if eval "$VALIDATION_CMD"; then
