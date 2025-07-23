@@ -6,9 +6,6 @@ if [ -f "$LOCK_FILE" ]; then
     echo "Agent lock file found. Another agent process may be running. Exiting post-create script."
     exit 0
 fi
-touch "$LOCK_FILE"
-# Ensure lock file is removed when the script exits
-trap 'rm -f "$LOCK_FILE"' EXIT
 
 echo "--- Running post-create script ---"
 

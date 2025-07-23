@@ -23,6 +23,22 @@ echo "============ Starting Services =========="
 # Docker Container Management
 # ======================================================================================
 
+echo "============ 1. Setup Magento Environment =========="
+# Check for Magento credentials before attempting to use them
+if [ "$INSTALL_MAGENTO" == "YES" ] && ([ -z "${MAGENTO_COMPOSER_AUTH_USER:-}" ] || [ -z "${MAGENTO_COMPOSER_AUTH_PASS:-}" ]); then
+  echo "ERROR: Please set the MAGENTO_COMPOSER_AUTH_USER and MAGENTO_COMPOSER_AUTH_PASS"
+  echo "secrets in your Codespace or repository settings."
+  exit 1
+fi
+
+echo "**** Running composer install ****"
+${COMPOSER_COMMAND} install --no-dev --optimize-autoloader --ignore-platform-reqs
+bin/magento sampledata:deploy
+
+# AI Packages
+sudo npm install -g @google/gemini-cli
+sudo npm install -g @anthropic-ai/claude-code
+
 # Function to start a Docker container if not running
 start_container() {
     local container_name=$1
@@ -65,35 +81,5 @@ start_container $PHPMYADMIN_CONTAINER \
     -e PMA_USER=root \
     -e PMA_PASSWORD=${MYSQL_ROOT_PASSWORD} \
     phpmyadmin/phpmyadmin
-
-
-echo "============ 1. Setup Magento Environment =========="
-# Check for Magento credentials before attempting to use them
-if [ "$INSTALL_MAGENTO" == "YES" ] && ([ -z "${MAGENTO_COMPOSER_AUTH_USER:-}" ] || [ -z "${MAGENTO_COMPOSER_AUTH_PASS:-}" ]); then
-  echo "ERROR: Please set the MAGENTO_COMPOSER_AUTH_USER and MAGENTO_COMPOSER_AUTH_PASS"
-  echo "secrets in your Codespace or repository settings."
-  exit 1
-fi
-
-# Handle Magento project creation if composer.json doesn't exist
-if [ ! -f ".devcontainer/db-installed.flag" ]; then
-  echo "**** Creating Magento project ${MAGENTO_VERSION} ****"
-  # Configure Composer authentication globally for the container
-  ${COMPOSER_COMMAND} config -g -a http-basic.repo.magento.com "${MAGENTO_COMPOSER_AUTH_USER}" "${MAGENTO_COMPOSER_AUTH_PASS}"
-  
-  # Create Magento project in a temporary directory
-  # The --no-install flag prevents composer from installing dependencies immediately
-  echo '{ "http-basic": { "repo.magento.com": { "username": "'"${MAGENTO_COMPOSER_AUTH_USER}"'", "password": "'"${MAGENTO_COMPOSER_AUTH_PASS}"'" } } }' > auth.json
-  ${COMPOSER_COMMAND} create-project --no-install --repository-url=https://repo.magento.com/ magento/project-${MAGENTO_EDITION}-edition=${MAGENTO_VERSION} magento2
-  rm /workspaces/magento-hyva-codespaces-hypernode-demo/magento2/composer.json
-  mv /workspaces/magento-hyva-codespaces-hypernode-demo/magento2/* .
-  rm -rf /workspaces/magento-hyva-codespaces-hypernode-demo/magento2
-
-  echo "**** Running composer install ****"
-  ${COMPOSER_COMMAND} install --no-dev --optimize-autoloader --ignore-platform-reqs
-  bin/magento sampledata:deploy
-fi
-sudo npm install -g @google/gemini-cli
-sudo npm install -g @anthropic-ai/claude-code
 
 echo "============ 2. Setup Complete =========="
