@@ -5,15 +5,19 @@ TASK_FILE=$1
 MAX_ATTEMPTS=5
 ATTEMPT=1
 
-echo "--- Agent Loop Started ---"
-echo "Task File: $TASK_FILE"
-
 # --- 1. Initialization from JSON file ---
 JOB_ID=$(jq -r '.jobId' "$TASK_FILE")
 PARENT_BRANCH=$(jq -r '.parentBranch' "$TASK_FILE")
 ISSUE_KEY=$(jq -r '.issueKey' "$TASK_FILE")
 SUMMARY=$(jq -r '.summary' "$TASK_FILE")
 TASK_DESCRIPTION=$(jq -r '.description' "$TASK_FILE")
+
+# --- 2. Setup Logging ---
+LOG_FILE="/tmp/agent_log_${JOB_ID}.log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+echo "--- Agent Loop Started ---"
+echo "Task File: $TASK_FILE"
+echo "Log File: $LOG_FILE"
 
 # Signal that development is starting
 if [ -n "$JOB_ID" ] && [ -n "$CALLBACK_URL" ]; then
@@ -34,20 +38,23 @@ else
 fi
 
 LAST_ERROR="No errors yet."
+FULL_HISTORY=""
 
-# --- 2. The Main Agent Loop ---
+# --- 3. The Main Agent Loop ---
 while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
     echo "--- Attempt #$ATTEMPT of $MAX_ATTEMPTS ---"
+    CURRENT_ATTEMPT_HISTORY=""
 
-    # --- 3. Planning Step ---
+    # --- Planning Step ---
     echo "Planning step: Asking Gemini for a plan..."
-    PLAN_PROMPT="You are an expert developer agent. Based on this task: '${TASK_DESCRIPTION}'. The last attempt failed with this error: '${LAST_ERROR}'. Create a step-by-step plan. The plan must include writing code, writing Playwright or unit tests to validate the code, and running those tests. Your output must ONLY be the plan as a numbered list. Do not use any tool calls."
+    PLAN_PROMPT="You are an expert developer agent. Based on this task: '${TASK_DESCRIPTION}'. The last attempt failed with this error: '${LAST_ERROR}'. The full history of the failed attempt is: '${FULL_HISTORY}'. Create a new, corrected, step-by-step plan. The plan must include writing code, writing Playwright or unit tests to validate the code, and running those tests. Your output must ONLY be the plan as a numbered list. Do not use any tool calls."
 
     PLAN=$(gemini -p "$PLAN_PROMPT")
     echo "Received Plan:"
     echo "$PLAN"
+    CURRENT_ATTEMPT_HISTORY+="Plan:\n$PLAN\n\n"
 
-    # --- 4. Execution Step ---
+    # --- Execution Step ---
     EXECUTION_SUCCESS=true
     echo "Execution step: Executing the plan..."
 
@@ -59,41 +66,50 @@ while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
 
         echo "Executing Action for step '${STEP}':"
         echo "$ACTION"
+        CURRENT_ATTEMPT_HISTORY+="Action for '${STEP}':\n$ACTION\n"
 
-        if ! eval "$ACTION"; then
+        # Capture stdout and stderr for better error reporting
+        ACTION_OUTPUT=$(eval "$ACTION" 2>&1) || {
             echo "Action failed!"
-            LAST_ERROR="The command for step '${STEP}' failed. Please generate a new plan to fix this."
+            LAST_ERROR="The command for step '${STEP}' failed with output: $ACTION_OUTPUT"
+            CURRENT_ATTEMPT_HISTORY+="Error: $LAST_ERROR\n"
             EXECUTION_SUCCESS=false
             break
-        fi
+        }
+        echo "$ACTION_OUTPUT"
+        CURRENT_ATTEMPT_HISTORY+="Output:\n$ACTION_OUTPUT\n\n"
     done
     IFS=$OLD_IFS
 
     if ! $EXECUTION_SUCCESS; then
+        FULL_HISTORY="$CURRENT_ATTEMPT_HISTORY"
         ATTEMPT=$((ATTEMPT + 1))
         continue
     fi
 
-    # --- 5. Validation Step ---
+    # --- Validation Step ---
     echo "Validation step: Running all tests..."
     VALIDATION_PROMPT="You are an expert developer agent. Generate the final validation command to run all tests for this project. Your output must ONLY be the raw, executable bash command. Do not use tool calls."
     VALIDATION_CMD=$(gemini -p "$VALIDATION_PROMPT")
 
     echo "Running validation: $VALIDATION_CMD"
-    if eval "$VALIDATION_CMD"; then
-        echo "--- Validation Successful! Task Complete. ---"
-        break # Exit the loop
-    else
-        LAST_ERROR="The final validation tests failed. Please create a new plan to fix the code and the tests."
+    VALIDATION_OUTPUT=$(eval "$VALIDATION_CMD" 2>&1) || {
+        LAST_ERROR="The final validation tests failed with output: $VALIDATION_OUTPUT"
         echo "$LAST_ERROR"
+        CURRENT_ATTEMPT_HISTORY+="Validation Error: $LAST_ERROR\n"
+        FULL_HISTORY="$CURRENT_ATTEMPT_HISTORY"
         ATTEMPT=$((ATTEMPT + 1))
-    fi
+        continue
+    }
+    echo "$VALIDATION_OUTPUT"
+    echo "--- Validation Successful! Task Complete. ---"
+    break # Exit the loop
 done
 
-# --- 6. Finalization ---
+# --- Finalization ---
 if [ $ATTEMPT -gt $MAX_ATTEMPTS ]; then
     echo "--- Agent failed to complete the task after $MAX_ATTEMPTS attempts. ---"
-    FAILURE_MESSAGE="Agent failed to complete the task after $MAX_ATTEMPTS attempts. Last error: $LAST_ERROR"
+    FAILURE_MESSAGE="Agent failed after $MAX_ATTEMPTS attempts. See log file in Codespace at ${LOG_FILE} for details. Last error: $LAST_ERROR"
     curl -X POST -H "Content-Type: application/json" \
          -d "{\"jobId\": \"$JOB_ID\", \"status\": \"failure\", \"message\": \"$FAILURE_MESSAGE\"}" \
          "$CALLBACK_URL/complete"
@@ -121,7 +137,7 @@ else
     echo "Error creating PR. Status: $PR_STATUS, Body: $PR_BODY"
 fi
 
-COMPLETION_MESSAGE="Successfully pushed changes for ${ISSUE_KEY}."
+COMPLETION_MESSAGE="Successfully pushed changes for ${ISSUE_KEY}. Log file available in Codespace at ${LOG_FILE}."
 if [ -n "$PR_URL" ]; then
     COMPLETION_MESSAGE+="\nPull Request created: ${PR_URL}"
 fi
